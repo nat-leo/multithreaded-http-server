@@ -1,0 +1,63 @@
+#include <string.h>
+#include <stdio.h>
+#include "http.h"
+
+ssize_t request_line_end(char *buffer, size_t len) {
+    for(size_t i=0; i < len-4; i++) {
+        // if \r\n\r\n is found in the array.
+        //printf("%c", buffer[i]);
+        if(buffer[i] == '\r' && buffer[i+1] == '\n' && buffer[i+2] == '\r' && buffer[i+3] == '\n') {
+            return i;
+        }
+    }
+    //printf("\n");
+    return -1;
+}
+
+int parse_http_request(HttpRequest *req, char *buffer, size_t buffer_len) {
+    int matched = sscanf(buffer, "%8s %8000s %8s", req->method, req->uri, req->version);
+    if(matched != 3) {
+        printf("Parsing failed.");
+        return -1;
+    }
+    matched = sscanf(buffer, "Content-Length: %zd", &(req->body_len));
+    if(matched == 0) {
+        req->body_len = 0;
+    }
+
+    char *headers = strstr(buffer, "\r\n");
+    char *line = strtok(headers, "\r\n");
+    int i = 0;
+    while(line != NULL) {
+        line = strtok(NULL, "\r\n");
+        i++;
+    }
+
+    return 0;
+}
+
+// make http
+// int main(void) {
+//     char sample_http_buffer[] = "GET /api/v1/users/42 HTTP/1.1\r\nHost: www.example.com\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\nAccept: application/json\r\nAccept-Language: en-US\r\nConnection: keep-alive\r\n\r\nhello world";
+//     HttpRequest req = {0};
+
+//     ssize_t last_request_line_byte = request_line_end(sample_http_buffer, sizeof(sample_http_buffer));
+
+//     ssize_t error = parse_request_line(&req, sample_http_buffer, last_request_line_byte);
+//     if(error < 0) {
+//         printf("Failed to parse request line");
+//         return -1;
+//     }
+
+//     if(last_request_line_byte < 0) {
+//         printf("Parsing http request failed.\n");
+//         return -1;
+//     }
+
+//     //HttpRequest req = {0};
+//     //int error = parse_headers(&req, sample_http_buffer, sizeof(sample_http_buffer));
+
+//     printf("Request Parsed: \nmethod: %s\nuri: %s\nversion : %s\nbody: %zd bytes\n", req.method, req.uri, req.version, req.body_len);
+
+//     return 0;
+// }
