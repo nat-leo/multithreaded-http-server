@@ -1,14 +1,20 @@
 CC = clang
 CFLAGS = -Wall -Wextra -Wpedantic -O2 -pthread
-TARGET = server
+TARGET = server http
 
-$(TARGET): server.c
-	$(CC) $(CFLAGS) server.c -o $(TARGET)
+SRCS := server.c http.c
 
-run: $(TARGET)
-	./$(TARGET)
+OBJS := $(SRCS:.c=.o ) 
+
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) $^ -o $@
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+all: $(TARGET)
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(OBJS) $(TARGET)
 
-.PHONY: run clean
+.PHONY: all clean
