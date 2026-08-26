@@ -17,3 +17,8 @@ typedef struct HttpRequest {
 } HttpRequest;
 
 int parse_http_request(HttpRequest* req, char *buffer, size_t len);
+
+int get(HttpRequest* req, int client_socket);
+
+int put(HttpRequest* req, int client_socket);
+

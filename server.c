@@ -50,6 +50,19 @@ int main(void) {
         parse_http_request(&req, buffer, sizeof(buffer));
         printf("Request Parsed: \nmethod: %s\nuri: %s\nversion : %s\nbody: %zd bytes\n", req.method, req.uri, req.version, req.body_len);
 
+        if(strcmp(req.method, "GET") == 0) {
+            error = get(&req, client);
+            if(error < 0) {
+                printf("Error on GET");
+            }
+        }
+        if(strcmp(req.method, "PUT") == 0) {
+            error = put(&req, client);
+            if(error < 0) {
+                printf("Error on GET");
+            }
+        }
+
         close(client);
     }
 

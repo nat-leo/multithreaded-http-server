@@ -4,13 +4,10 @@
 
 ssize_t request_line_end(char *buffer, size_t len) {
     for(size_t i=0; i < len-4; i++) {
-        // if \r\n\r\n is found in the array.
-        //printf("%c", buffer[i]);
         if(buffer[i] == '\r' && buffer[i+1] == '\n' && buffer[i+2] == '\r' && buffer[i+3] == '\n') {
             return i;
         }
     }
-    //printf("\n");
     return -1;
 }
 
@@ -27,14 +24,21 @@ int parse_http_request(HttpRequest *req, char *buffer, size_t buffer_len) {
 
     char *headers = strstr(buffer, "\r\n");
     char *line = strtok(headers, "\r\n");
-    int i = 0;
     while(line != NULL) {
         line = strtok(NULL, "\r\n");
-        i++;
     }
 
     return 0;
 }
+
+int get(HttpRequest *req, int client_socket) {
+    return 0;
+}
+
+int put(HttpRequest *req, int client_socket) {
+    return 0;
+}
+
 
 // make http
 // int main(void) {
