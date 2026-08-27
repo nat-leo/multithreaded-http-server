@@ -1,5 +1,8 @@
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/socket.h>
 #include "http.h"
 
 ssize_t request_line_end(char *buffer, size_t len) {
@@ -32,6 +35,28 @@ int parse_http_request(HttpRequest *req, char *buffer, size_t buffer_len) {
 }
 
 int get(HttpRequest *req, int client_socket) {
+    int file = open(req->uri, O_RDONLY);
+    if(file < 0) {
+        printf("Error reading file %s", req->uri);
+    }
+
+    char buffer[4096];
+    ssize_t read_bytes;
+    while( (read_bytes = read(file, buffer, sizeof(buffer)) ) > 0) {
+
+        ssize_t bytes_sent = 0;
+        while(bytes_sent < read_bytes) {
+            ssize_t send_bytes = send(
+                client_socket, 
+                buffer + bytes_sent, 
+                read_bytes - bytes_sent, 
+                0
+            );
+            bytes_sent += send_bytes;
+        }   
+    }
+    close(file);
+
     return 0;
 }
 
