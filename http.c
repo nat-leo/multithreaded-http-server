@@ -15,7 +15,7 @@ ssize_t request_line_end(char *buffer, size_t len) {
     return -1;
 }
 
-int parse_http_request(HttpRequest *req, char *buffer, size_t buffer_len) {
+int parse_http_request(HttpRequest *req, char *buffer) {
     int matched = sscanf(buffer, "%8s %8000s %8s", req->method, req->uri, req->version);
     if(matched != 3) {
         fprintf(stderr, "Parsing failed.");
