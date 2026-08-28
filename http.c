@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include "http.h"
 
 ssize_t request_line_end(char *buffer, size_t len) {
@@ -17,7 +18,7 @@ ssize_t request_line_end(char *buffer, size_t len) {
 int parse_http_request(HttpRequest *req, char *buffer, size_t buffer_len) {
     int matched = sscanf(buffer, "%8s %8000s %8s", req->method, req->uri, req->version);
     if(matched != 3) {
-        printf("Parsing failed.");
+        fprintf(stderr, "Parsing failed.");
         return -1;
     }
     matched = sscanf(buffer, "Content-Length: %zd", &(req->body_len));
@@ -35,15 +36,33 @@ int parse_http_request(HttpRequest *req, char *buffer, size_t buffer_len) {
 }
 
 int get(HttpRequest *req, int client_socket) {
-    int file = open(req->uri, O_RDONLY);
+    struct stat st;
+    char path[512]; 
+    int result = snprintf(path, sizeof(path), "public/%s", req->uri);
+    int file = open(path, O_RDONLY);
     if(file < 0) {
-        printf("Error reading file %s", req->uri);
+        fprintf(stderr, "Error reading file %s", req->uri);
+    } else {
+        fstat(file, &st);
+
+        char header[1024];
+        snprintf(
+            header,
+            sizeof(header),
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Length: %lld\r\n"
+            "Content-Type: text/plain\r\n"
+            "\r\n",
+            (long long)st.st_size
+        );
+
+        send(client_socket, header, strlen(header), 0);
     }
 
     char buffer[4096];
     ssize_t read_bytes;
     while( (read_bytes = read(file, buffer, sizeof(buffer)) ) > 0) {
-
+        fprintf(stdout, "%s", buffer);
         ssize_t bytes_sent = 0;
         while(bytes_sent < read_bytes) {
             ssize_t send_bytes = send(
