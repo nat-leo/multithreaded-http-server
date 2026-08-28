@@ -47,7 +47,7 @@ int main(void) {
             sizeof(buffer),
             0
         );
-        parse_http_request(&req, buffer, sizeof(buffer));
+        parse_http_request(&req, buffer);
         printf("Request Parsed: \nmethod: %s\nuri: %s\nversion : %s\nbody: %zd bytes\n", req.method, req.uri, req.version, req.body_len);
 
         if(strcmp(req.method, "GET") == 0) {
