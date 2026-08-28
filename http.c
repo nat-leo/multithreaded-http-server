@@ -21,9 +21,13 @@ int parse_http_request(HttpRequest *req, char *buffer) {
         fprintf(stderr, "Parsing failed.");
         return -1;
     }
-    matched = sscanf(buffer, "Content-Length: %zd", &(req->body_len));
+
+    req->body = strstr(buffer, "\r\n\r\n");
+
+    char *content_length_ptr = strstr(buffer, "Content-Length:");
+    matched = sscanf(content_length_ptr, "Content-Length: %zd\r\n", &(req->content_length));
     if(matched == 0) {
-        req->body_len = 0;
+        req->content_length = 0;
     }
 
     char *headers = strstr(buffer, "\r\n");
@@ -82,50 +86,50 @@ int get(HttpRequest *req, int client_socket) {
     return 0;
 }
 
-int put(HttpRequest *req, int client_socket) {
-    struct stat st;
+int put(HttpRequest *req, int client_socket, char *buffer, ssize_t buffer_size, ssize_t msg_bytes) {
     char path[512]; 
-    int result = snprintf(path, sizeof(path), "public/%s", req->uri);
+    int result = snprintf(path, sizeof(path), "public%s", req->uri);
     if(result < 0) {
         fprintf(stderr, "Error creating path %s using %s", path, req->uri);
     }
-    int file = open(path, O_RDONLY);
+    int file = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0777);
     if(file < 0) {
         fprintf(stderr, "Error reading file %s", req->uri);
-    } else {
-        fstat(file, &st);
-
-        char header[1024];
-        snprintf(
-            header,
-            sizeof(header),
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Length: %lld\r\n"
-            "Content-Type: text/plain\r\n"
-            "\r\n",
-            (long long)st.st_size
-        );
-
-        send(client_socket, header, strlen(header), 0);
     }
 
-    char buffer[4096];
-    ssize_t read_bytes;
-    while( (read_bytes = read(file, buffer, sizeof(buffer)) ) > 0) {
-        fprintf(stdout, "%s", buffer);
-        ssize_t bytes_sent = 0;
-        while(bytes_sent < read_bytes) {
-            ssize_t send_bytes = send(
-                client_socket, 
-                buffer + bytes_sent, 
-                read_bytes - bytes_sent, 
-                0
+
+    ssize_t total_bytes = write(file, req->body + 4, msg_bytes - ((req->body + 4) - buffer) );
+
+    ssize_t bytes_read = 0;
+    while(total_bytes < req->content_length) {
+        bytes_read = recv(client_socket, buffer, sizeof(buffer), 0);
+        ssize_t bytes_copied = 0;
+        while(bytes_copied < bytes_read) {
+            ssize_t bytes_done = write(
+                file, 
+                buffer + bytes_copied, 
+                bytes_read - bytes_copied
             );
-            bytes_sent += send_bytes;
+            bytes_copied += bytes_done;
         }   
+        total_bytes += bytes_copied;
     }
     close(file);
-    return 0;
+
+    char header[1024];
+    total_bytes=0;
+    snprintf(
+        header,
+        sizeof(header),
+        "HTTP/1.1 201 OK\r\n"
+        "Content-Length: %zd\r\n"
+        "Content-Type: text/plain\r\n"
+        "\r\n",
+        total_bytes
+    );
+    send(client_socket, header, strlen(header), 0);
+
+    return total_bytes;
 }
 
 

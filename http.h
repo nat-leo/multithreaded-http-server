@@ -13,12 +13,12 @@ typedef struct HttpRequest {
     HttpHeader headers[2048];
     size_t header_len;
     char* body;
-    size_t body_len;
+    ssize_t content_length;
 } HttpRequest;
 
 int parse_http_request(HttpRequest* req, char *buffer);
 
 int get(HttpRequest* req, int client_socket);
 
-int put(HttpRequest* req, int client_socket);
+int put(HttpRequest* req, int client_socket, char* buffer, ssize_t buffer_size, ssize_t n);
 
