@@ -39,6 +39,9 @@ int get(HttpRequest *req, int client_socket) {
     struct stat st;
     char path[512]; 
     int result = snprintf(path, sizeof(path), "public/%s", req->uri);
+    if(result < 0) {
+        fprintf(stderr, "Error creating path %s using %s", path, req->uri);
+    }
     int file = open(path, O_RDONLY);
     if(file < 0) {
         fprintf(stderr, "Error reading file %s", req->uri);
@@ -80,6 +83,48 @@ int get(HttpRequest *req, int client_socket) {
 }
 
 int put(HttpRequest *req, int client_socket) {
+    struct stat st;
+    char path[512]; 
+    int result = snprintf(path, sizeof(path), "public/%s", req->uri);
+    if(result < 0) {
+        fprintf(stderr, "Error creating path %s using %s", path, req->uri);
+    }
+    int file = open(path, O_RDONLY);
+    if(file < 0) {
+        fprintf(stderr, "Error reading file %s", req->uri);
+    } else {
+        fstat(file, &st);
+
+        char header[1024];
+        snprintf(
+            header,
+            sizeof(header),
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Length: %lld\r\n"
+            "Content-Type: text/plain\r\n"
+            "\r\n",
+            (long long)st.st_size
+        );
+
+        send(client_socket, header, strlen(header), 0);
+    }
+
+    char buffer[4096];
+    ssize_t read_bytes;
+    while( (read_bytes = read(file, buffer, sizeof(buffer)) ) > 0) {
+        fprintf(stdout, "%s", buffer);
+        ssize_t bytes_sent = 0;
+        while(bytes_sent < read_bytes) {
+            ssize_t send_bytes = send(
+                client_socket, 
+                buffer + bytes_sent, 
+                read_bytes - bytes_sent, 
+                0
+            );
+            bytes_sent += send_bytes;
+        }   
+    }
+    close(file);
     return 0;
 }
 
