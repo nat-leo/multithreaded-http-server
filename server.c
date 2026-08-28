@@ -41,14 +41,15 @@ int main(void) {
         char buffer[1024];
         HttpRequest req = {0};
         int client = accept(server, NULL, NULL);
-        recv(
+        ssize_t n = recv(
             client,
             buffer,
             sizeof(buffer),
             0
         );
         parse_http_request(&req, buffer);
-        printf("Request Parsed: \nmethod: %s\nuri: %s\nversion : %s\nbody: %zd bytes\n", req.method, req.uri, req.version, req.body_len);
+        printf("Received %zu bytes\n", n);
+        printf("Request Parsed: \nmethod: %s\nuri: %s\nversion : %s\ncontent-length: %zd bytes\n", req.method, req.uri, req.version, req.content_length);
 
         if(strcmp(req.method, "GET") == 0) {
             error = get(&req, client);
@@ -57,9 +58,9 @@ int main(void) {
             }
         }
         if(strcmp(req.method, "PUT") == 0) {
-            error = put(&req, client);
+            error = put(&req, client, buffer, sizeof(buffer), n);
             if(error < 0) {
-                printf("Error on GET");
+                printf("Error on PUT");
             }
         }
 
